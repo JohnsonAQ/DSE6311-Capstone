@@ -12,6 +12,7 @@ Can health-related attributes be used to accurately classify health risk in peop
 ## Hypothesis 
 
 H0: There is no predictable or statistically significant relationship between demographic, lifestyle, and health condition variables and overall health risk
+
 H1: Individuals’ health risk can be predicted and classified based on demographic, lifestyle, and health condition variables. Certain variables significantly influence this risk.
 
 ## Prediction 
