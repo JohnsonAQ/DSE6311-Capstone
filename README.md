@@ -18,3 +18,78 @@ H1: Individuals’ health risk can be predicted and classified based on demograp
 ## Prediction 
 
 Using routinely collected healthcare data, we aim to create a predictive model that can classify individuals in high and low risk health categories. The model will use variables centered on demographics, lifestyle factors, and already existing health conditions, or lack thereof, to identify individuals who are at risk for detrimental health outcomes, as well as the main factors playing a role in influencing this outcome.
+
+## Exploratory Data Analysis 
+
+-----Start Code------
+
+#The dataset is in an CSV
+
+file.choose()
+
+health_data <- read.csv("C:\\Users\\APjoh\\OneDrive\\Desktop\\Merrimack College MS Data Science\\CAPSTONE\\Week 4\\CVD_cleaned.csv")
+
+#General view of the data
+head(health_data)
+str(health_data)
+summary(health_data)
+
+#Checking for missing values
+colSums(is.na(health_data))
+
+#Checking for duplicates
+any(duplicated(health_data))
+sum(duplicated(health_data))
+health_data[duplicated(health_data), ]
+
+
+#Removing duplicates 
+health_data <- health_data[!duplicated(health_data), ]
+any(duplicated(health_data))
+
+#Cleaning up Column name formatting
+colnames(health_data) <- tolower(colnames(health_data))
+colnames(health_data) <- gsub("\\.", "", colnames(health_data))
+colnames(health_data)[colnames(health_data) == "friedpotato_consumption"] <- "fried_potato_consumption"
+
+colnames(health_data)
+
+
+#Separating categorial and continous varaibles 
+
+cat_vars <- c("general_health","checkup","exercise","heart_disease",
+              "skin_cancer","other_cancer","depression","diabetes",
+              "arthritis","sex","age_category","smoking_history")
+
+cont_vars <- c("height_cm","weight_kg","bmi","fruit_consumption",
+               "green_vegetables_consumption","fried_potato_consumption","alcohol_consumption")
+
+
+
+
+#Summary statistics for each of the varaibles
+
+
+for (var in cat_vars) {
+  cat("Categorical Variable:", var, "\n")
+  freq <- table(health_data[[var]])
+  perc <- round(prop.table(freq) * 100, 2)
+  print(data.frame(Frequency = freq, Percentage = perc))
+  cat("\n----------------------\n")
+}
+
+
+for (var in cont_vars) {
+  cat("Continuous Variable:", var, "\n")
+  x <- health_data[[var]]
+  stats <- data.frame(
+    Mean = mean(x),
+    Median = median(x),
+    SD = sd(x),
+    Min = min(x),
+    Max = max(x),
+    Range = max(x) - min(x)
+  )
+  print(stats)
+  cat("\n----------------------\n")
+}
