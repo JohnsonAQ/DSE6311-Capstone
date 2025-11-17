@@ -238,3 +238,78 @@ corrplot(cor_matrix,
          title = "Correlation Heatmap of Continuous Variables")
 ```
 
+Other Disease Variable Visualization
+
+```{r}
+library(ggplot2)
+library(scales)
+```
+
+Heart Disease
+
+```{r}
+ggplot(health_data, aes(x = heart_disease, fill = heart_disease)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Yes" = "lightblue", "No" = "coral")) +
+  scale_y_continuous(labels = label_number(big.mark = ",")) +
+  labs(title = "Prevalence of Heart Disease", x = "Heart Disease", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Skin Cancer
+
+```{r}
+ggplot(health_data, aes(x = skin_cancer, fill = skin_cancer)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Yes" = "lightblue", "No" = "coral")) +
+  scale_y_continuous(labels = label_number(big.mark = ",")) +
+  labs(title = "Prevalence of Skin Cancer", x = "Skin Cancer", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+Other Cancer
+
+```{r}
+ggplot(health_data, aes(x = other_cancer, fill = other_cancer)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Yes" = "lightblue", "No" = "coral")) +
+  scale_y_continuous(labels = label_number(big.mark = ",")) +
+  labs(title = "Prevalence of Other Cancer", x = "Other Cancer", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+``` 
+Diabetes
+
+```{r}
+ggplot(health_data, aes(x = diabetes, fill = diabetes)) +
+  geom_bar() +
+  scale_fill_manual(values = c(
+    "Yes" = "lightblue",
+    "Yes, but female told only during pregnancy" = "lightblue",
+    "No, pre-diabetes or borderline diabetes" = "coral",
+    "No" = "coral"
+  )) +
+  scale_y_continuous(labels = label_number(big.mark = ",")) +
+  labs(title = "Prevalence of Diabetes", x = "Diabetes", y = "Count") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)  
+  )
+```
+
+Arthiritis 
+
+```{r}
+ggplot(health_data, aes(x = arthritis, fill = arthritis)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Yes" = "lightblue", "No" = "coral")) +
+  scale_y_continuous(labels = label_number(big.mark = ",")) +
+  labs(title = "Prevalence of Arthritis", x = "Arthritis", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
