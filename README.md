@@ -22,6 +22,7 @@ Using routinely collected healthcare data, we aim to create a predictive model t
 ## Exploratory Data Analysis 
 
 -----Start EDA Code------
+---AJ---
 
 The dataset is in an CSV
 
@@ -103,6 +104,7 @@ for (var in cont_vars) {
 ```
 
 ----VISUALIZATION----
+---LK---
 
 ```{r}
 # Load libraries
@@ -225,6 +227,8 @@ corrplot(cor_matrix,
 ```
 
 Other Disease Variable Visualization
+
+---AJ---
 
 ```{r}
 library(ggplot2)
@@ -480,7 +484,11 @@ char_vars_en <- sapply(health_data_altered, is.character)
 char_data <- health_data_altered[, char_vars_en]
 
 lapply(char_data, unique)
+```
 
+---LK---
+
+```r
 library(readr)
 
 health_data_altered <- read_csv("/Users/lovepreetk/Downloads/health_data_altered.csv")
