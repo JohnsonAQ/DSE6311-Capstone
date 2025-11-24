@@ -21,7 +21,7 @@ Using routinely collected healthcare data, we aim to create a predictive model t
 
 ## Exploratory Data Analysis 
 
------Start Code------
+-----Start EDA Code------
 
 The dataset is in an CSV
 
@@ -103,16 +103,6 @@ for (var in cont_vars) {
 ```
 
 ----VISUALIZATION----
-Code 
-
----
-title: "R Notebook"
-output: html_notebook
----
-
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
 # Load libraries
@@ -122,22 +112,18 @@ library(corrplot)
 library(factoextra)
 
 # Read your dataset
-df <- read_csv("/Users/lovepreetk/Downloads/health_data.csv")
+health_data <- read_csv("/Users/lovepreetk/Downloads/health_data.csv")
 
 # Check structure
-glimpse(df)
-
-# Remove duplicates (you said 80 duplicates)
-df <- distinct(df)
+glimpse(health_data)
 
 ```
-
 
 
 Variable summary table
 
 ```{r}
-skim(df %>%
+skim(health_data %>%
   select(height_cm, weight_kg, bmi, alcohol_consumption,
          fruit_consumption, green_vegetables_consumption,
          fried_potato_consumption))
@@ -145,7 +131,7 @@ skim(df %>%
 Histogram of Continuous Variable 
 
 ```{r}
-df%>%
+health_data %>%
   select(height_cm, weight_kg, bmi, alcohol_consumption,
          fruit_consumption, green_vegetables_consumption,
          fried_potato_consumption) %>%
@@ -160,7 +146,7 @@ df%>%
 
 Box plot 
 ```{r}
-df %>%
+health_data %>%
   select(height_cm, weight_kg, bmi, alcohol_consumption,
          fruit_consumption, green_vegetables_consumption,
          fried_potato_consumption) %>%
@@ -175,7 +161,7 @@ df %>%
 Bar Graph- General Health 
 
 ```{r}
-df %>%
+health_data %>%
   count(general_health) %>%
   ggplot(aes(x = reorder(general_health, n), y = n, fill = general_health)) +
   geom_col() +
@@ -190,7 +176,7 @@ df %>%
 Bar graph for exercise status
 
 ```{r}
-df %>%
+health_data %>%
   count(exercise) %>%
   ggplot(aes(x = exercise, y = n, fill = exercise)) +
   geom_col() +
@@ -204,7 +190,7 @@ Illness prevalene (depression)
 
 
 ```{r}
-df %>%
+health_data %>%
   count(depression) %>%
   ggplot(aes(x = depression, y = n, fill = depression)) +
   geom_col() +
@@ -213,12 +199,12 @@ df %>%
 
 ```
 
-correlation Heatmap 
+Correlation Heatmap 
 
 ```{r correlation-heatmap, fig.width=10, fig.height=8, fig.align='center'}
 library(corrplot)
 
-num_vars <- df %>%
+num_vars <- health_data %>%
   select(height_cm, weight_kg, bmi, alcohol_consumption,
          fruit_consumption, green_vegetables_consumption,
          fried_potato_consumption)
@@ -313,3 +299,205 @@ ggplot(health_data, aes(x = arthritis, fill = arthritis)) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+---End EDA Code---
+
+
+## Preprocessing & Feature Engineering 
+---Start PFE Code---
+
+```{r}
+file.choose()
+health_data <-read.csv("C:\\Users\\APjoh\\OneDrive\\Desktop\\Merrimack College MS Data Science\\CAPSTONE\\Week 3\\health_data.csv")
+```
+ Variable transformation
+Checkup variable recoding 
+
+```{r}
+library(dplyr)
+
+unique(health_data$checkup)
+
+health_data$checkup_recoded <- recode(health_data$checkup,
+                              "Within the past year" = 1,
+                              "Within the past 2 years" = 2,
+                              "Within the past 5 years" = 3,
+                              "5 or more years ago" = 4,
+                              "Never" = 5
+)
+```
+
+```{r}
+unique(health_data$checkup_recoded)
+
+table(health_data$checkup)
+table(health_data$checkup_recoded)
+```
+
+
+Diabetes variable engineering
+
+```{r}
+unique(health_data$diabetes)
+
+health_data <- health_data %>%
+  mutate(
+    gestational_diabetes = ifelse(
+      diabetes == "Yes, but female told only during pregnancy", "Yes", "No"
+    ),
+    
+    prediabetic = ifelse(
+      diabetes == "No, pre-diabetes or borderline diabetes", "Yes", "No"
+    )
+  )
+
+table(health_data$diabetes)
+table(health_data$gestational_diabetes)
+table(health_data$prediabetic)
+```
+
+```{r}
+
+#New variables have been created; changing the labels in the
+#originals diabetes variable to no longer include these labels
+
+health_data <- health_data %>%
+  mutate(
+    diabetes = case_when(
+      diabetes == "Yes, but female told only during pregnancy" ~ "No",
+      diabetes == "No, pre-diabetes or borderline diabetes" ~ "No",
+      TRUE ~ diabetes  
+    )
+  )
+
+
+table(health_data$diabetes)
+```
+
+General Health Variable recoding
+
+```{r}
+unique(health_data$general_health)
+
+health_data$general_health_recoded <- recode(health_data$general_health,
+                                      "Excellent" = 1,
+                                      "Very Good" = 2,
+                                      "Good" = 3,
+                                      "Fair" = 4,
+                                      "Poor" = 5
+)
+
+table(health_data$general_health)
+table(health_data$general_health_recoded)
+```
+
+Target Variable Creation/Engineering
+
+```{r}
+health_data <- health_data %>%
+  mutate(
+    health_risk = case_when(
+      diabetes == "Yes" | prediabetic == "Yes" |
+        heart_disease == "Yes" | skin_cancer == "Yes" | other_cancer == "Yes" ~ "Yes",
+      TRUE ~ "No"
+    )
+  )
+
+table(health_data$health_risk)
+colnames(health_data)
+```
+
+Removing original and target-related variables
+
+```{r}
+health_data_altered <- health_data %>%
+  select(-checkup,            
+         -general_health,     
+         -diabetes,           
+         -prediabetic,        
+         -heart_disease,      
+         -skin_cancer,        
+         -other_cancer)       
+
+colnames(health_data_altered)
+```
+
+Numerical Variables Summary
+
+```{r}
+summary(dplyr::select_if(health_data_altered, is.numeric))
+```
+
+Multicolinear Variable Removal (Weight)
+
+```{r}
+health_data_altered <- health_data_altered %>%
+  select(-weight_kg)
+
+colnames(health_data_altered)
+```
+
+Z_SCORE Scaling for Logistic Regression Model
+
+```{r}
+num_vars_sc <- c("height_cm", "bmi", 
+              "fruit_consumption", "green_vegetables_consumption", 
+              "fried_potato_consumption", "alcohol_consumption")
+
+
+health_data_altered[num_vars_sc] <- scale(health_data_altered[num_vars_sc])
+
+summary(health_data_altered[num_vars_sc])
+str(health_data_altered)
+```
+
+Age Category Variable Conversion to Factor
+
+```{r}
+unique(health_data_altered$age_category)
+
+age_levels <- c("18-24","25-29","30-34","35-39","40-44",
+                "45-49","50-54","55-59","60-64","65-69",
+                "70-74","75-79","80+")
+
+
+health_data_altered$age_category <- factor(
+  health_data_altered$age_category,
+  levels = age_levels,
+  ordered = TRUE
+)
+
+
+str(health_data_altered$age_category)
+table(health_data_altered$age_category)
+```
+
+Variable Encoding
+
+```r
+
+char_vars_en <- sapply(health_data_altered, is.character)
+
+char_data <- health_data_altered[, char_vars_en]
+
+lapply(char_data, unique)
+
+library(readr)
+
+health_data_altered <- read_csv("/Users/lovepreetk/Downloads/health_data_altered.csv")
+health_data_altered <- health_data_altered %>%
+  mutate(
+    sex = ifelse(sex == "Male", 1, 0),
+    smoking_history = ifelse(smoking_history == "Yes", 1, 0),
+    arthritis = ifelse(arthritis == "Yes", 1, 0),
+    depression = ifelse(depression == "Yes", 1, 0),
+    health_risk = ifelse(health_risk == "Yes", 1, 0),
+    gestational_diabetes = ifelse(gestational_diabetes == "Yes", 1, 0),
+    exercise = ifelse(exercise == "Yes", 1, 0)
+  )
+summary(health_data_altered[, c("sex","smoking_history","arthritis","depression","health_risk",
+               "gestational_diabetes","exercise")])
+
+```
+---End PFE Code---
+
+
