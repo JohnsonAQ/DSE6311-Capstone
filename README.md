@@ -22,6 +22,7 @@ Using routinely collected healthcare data, we aim to create a predictive model t
 ## Exploratory Data Analysis 
 
 -----Start EDA Code------
+
 ---AJ---
 
 The dataset is in an CSV
@@ -104,6 +105,7 @@ for (var in cont_vars) {
 ```
 
 ----VISUALIZATION----
+
 ---LK---
 
 ```{r}
