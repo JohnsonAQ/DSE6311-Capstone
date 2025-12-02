@@ -511,3 +511,126 @@ summary(health_data_altered[, c("sex","smoking_history","arthritis","depression"
 ---End PFE Code---
 
 
+## Preprocessing & Model  
+
+Initial Model
+
+---LK---
+
+Code 
+
+```{r}
+library(caret)
+library(pROC)
+library(dplyr)
+
+set.seed(123)
+
+df <- read.csv("/Users/lovepreetk/Downloads/health_data_updated.csv")
+df$health_risk <- factor(df$health_risk, levels = c(0,1))
+
+trainIndex <- createDataPartition(df$health_risk, p = 0.8, list = FALSE)
+train <- df[trainIndex, ]
+test  <- df[-trainIndex, ]
+
+wts <- ifelse(train$health_risk == 1, 5, 1)
+
+ctrl <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  savePredictions = "final"
+)
+
+train$health_risk <- factor(train$health_risk, labels = c("Low", "High"))
+test$health_risk  <- factor(test$health_risk, labels = c("Low", "High"))
+
+logit_model <- train(
+  health_risk ~ .,
+  data = train,
+  method = "glm",
+  family = "binomial",
+  trControl = ctrl,
+  weights = wts,
+  metric = "ROC"
+)
+
+test_probs <- predict(logit_model, newdata = test, type = "prob")[,"High"]
+test_pred  <- ifelse(test_probs > 0.5, "High", "Low")
+
+cm <- confusionMatrix(factor(test_pred, levels=c("Low","High")), test$health_risk, positive="High")
+roc_obj <- roc(test$health_risk, test_probs)
+auc(roc_obj)
+
+```
+```{r}
+# Predictions
+test_probs <- predict(logit_model, newdata = test, type = "prob")[,"High"]
+test_pred  <- ifelse(test_probs > 0.5, "High", "Low")
+test_pred  <- factor(test_pred, levels = c("Low", "High"))
+
+# Confusion Matrix
+cm <- confusionMatrix(
+  data = test_pred,
+  reference = test$health_risk,
+  positive = "High"
+)
+
+# Extract metrics
+accuracy     <- cm$overall["Accuracy"]
+precision    <- cm$byClass["Precision"]
+recall       <- cm$byClass["Recall"]
+specificity  <- cm$byClass["Specificity"]
+f1           <- cm$byClass["F1"]
+
+# AUC
+roc_obj <- roc(test$health_risk, test_probs)
+auc_val <- auc(roc_obj)
+
+# Print results
+accuracy
+precision
+recall
+specificity
+f1
+auc_val
+cm$table    # confusion matrix
+```
+```{r}
+
+# Training set predictions
+train_probs <- predict(logit_model, newdata = train, type = "prob")[,"High"]
+train_pred  <- ifelse(train_probs > 0.5, "High", "Low")
+train_pred  <- factor(train_pred, levels = c("Low", "High"))
+
+# Training Confusion Matrix
+cm_train <- confusionMatrix(
+  data = train_pred,
+  reference = train$health_risk,
+  positive = "High"
+)
+
+# Extract metrics
+train_accuracy     <- cm_train$overall["Accuracy"]
+train_precision    <- cm_train$byClass["Precision"]
+train_recall       <- cm_train$byClass["Recall"]
+train_specificity  <- cm_train$byClass["Specificity"]
+train_f1           <- cm_train$byClass["F1"]
+
+# Training AUC
+roc_train <- roc(train$health_risk, train_probs)
+train_auc <- auc(roc_train)
+
+# Print results
+train_accuracy
+train_precision
+train_recall
+train_specificity
+train_f1
+train_auc
+cm_train$table
+
+```
+
+
