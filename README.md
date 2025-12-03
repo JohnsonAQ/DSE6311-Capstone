@@ -308,7 +308,7 @@ ggplot(health_data, aes(x = arthritis, fill = arthritis)) +
 ---End EDA Code---
 
 
-## Preprocessing & Feature Engineering 
+## Preprocessing & Feature Engineering  (PFE)
 ---Start PFE Code---
 
 ```{r}
@@ -511,13 +511,11 @@ summary(health_data_altered[, c("sex","smoking_history","arthritis","depression"
 ---End PFE Code---
 
 
-## Preprocessing & Model  
+## Preprocessing & Model  (PM)
 
-Initial Model
+---Start PM Code---
 
 ---LK---
-
-Code 
 
 ```{r}
 library(caret)
@@ -632,5 +630,10 @@ train_auc
 cm_train$table
 
 ```
+```{r}
+model_coeffs <- coef(logit_model$finalModel)
+Model_coeffs
+```
 
+---End PM Code---
 
