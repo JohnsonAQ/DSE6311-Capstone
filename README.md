@@ -637,3 +637,285 @@ Model_coeffs
 
 ---End PM Code---
 
+## Model Evaluation and Tuning (Logistic), Addtional Models (XGboost) 
+----AJ-----
+Logistic Model
+Finding the best Probability threshold based on F1 score
+
+```{r}
+# Predicted probabilities for the High class
+thrF1_test_probs <- predict(logit_model, newdata = test, type = "prob")[,"High"]
+```
+
+```{r}
+# Evaluatinf thresholds from 0.05 to 0.95 for F1 score
+thrF1_thresholds <- seq(0.05, 0.95, by = 0.01)
+thrF1_results <- data.frame()
+
+for (thr in thrF1_thresholds) {
+  
+  thrF1_pred <- ifelse(thrF1_test_probs > thr, "High", "Low")
+  thrF1_pred <- factor(thrF1_pred, levels = c("Low","High"))
+  
+  thrF1_cm <- confusionMatrix(
+    data = thrF1_pred,
+    reference = test$health_risk,
+    positive = "High"
+  )
+  
+  thrF1_results <- rbind(thrF1_results, data.frame(
+    threshold = thr,
+    precision = thrF1_cm$byClass["Precision"],
+    recall = thrF1_cm$byClass["Recall"],
+    F1 = thrF1_cm$byClass["F1"]
+  ))
+}
+```
+
+```{r}
+#Find the threshold with the maximum F1
+thrF1_best_threshold <- thrF1_results$threshold[which.max(thrF1_results$F1)]
+thrF1_best_threshold
+```
+
+```{r}
+#Applying this optimal threshold to classify
+thrF1_final_pred <- ifelse(thrF1_test_probs > thrF1_best_threshold, "High", "Low")
+thrF1_final_pred <- factor(thrF1_final_pred, levels = c("Low","High"))
+```
+
+```{r}
+#Confusion matrix at optimal threshold
+thrF1_final_cm <- confusionMatrix(
+  thrF1_final_pred,
+  test$health_risk,
+  positive = "High"
+)
+
+thrF1_final_cm
+thrF1_best_threshold
+```
+
+XGBOOST MODEL
+
+```{r}
+#XGBOOST
+library(caret)
+library(pROC)
+library(dplyr)
+library(xgboost)
+library(Matrix)
+```
+
+```{r}
+set.seed(123)
+
+
+df <- read.csv("C:\\Users\\APjoh\\OneDrive\\Desktop\\Merrimack College MS Data Science\\CAPSTONE\\Week 5\\health_data_updated - health_data_updated.csv")
+
+#Structure of variables
+str(df)
+
+unique(df$age_category)
+
+#Prepare to recode Age_category variable
+age_map <- c(
+  "18-24" = 1,
+  "25-29" = 2,
+  "30-34" = 3,
+  "35-39" = 4,
+  "40-44" = 5,
+  "45-49" = 6,
+  "50-54" = 7,
+  "55-59" = 8,
+  "60-64" = 9,
+  "65-69" = 10,
+  "70-74" = 11,
+  "75-79" = 12,
+  "80+"   = 13
+)
+```
+
+```{r}
+# TRAIN/TEST SPLIT
+trainIndex <- createDataPartition(df$health_risk, p = 0.8, list = FALSE)
+train <- df[trainIndex, ]
+test  <- df[-trainIndex, ]
+
+train$age_category <- as.numeric(age_map[train$age_category])
+test$age_category  <- as.numeric(age_map[test$age_category])
+```
+
+```{r}
+#Preparing  matrices for XGBoost
+features <- setdiff(names(train), "health_risk")
+
+train_matrix <- xgb.DMatrix(
+  data = as.matrix(train[, features]),
+  label = train$health_risk
+)
+
+test_matrix <- xgb.DMatrix(
+  data = as.matrix(test[, features]),
+  label = test$health_risk
+)
+```
+
+```{r}
+ #Setting XGBoost parameters 
+xgb_params <- list(
+  objective = "binary:logistic",
+  eval_metric = "auc",
+  scale_pos_weight = sum(train$health_risk == 0) / sum(train$health_risk == 1),
+  eta = 0.1,
+  max_depth = 6,
+  subsample = 0.8,
+  colsample_bytree = 0.8
+)
+```
+
+```{r}
+#Training XGBoost model
+set.seed(123)
+xgb_model <- xgb.train(
+  params = xgb_params,
+  data = train_matrix,
+  nrounds = 100,
+  verbose = 1
+)
+
+```
+
+```{r}
+#Predictions on test set
+test_probs <- predict(xgb_model, test_matrix)
+test_pred <- ifelse(test_probs > 0.5, 1, 0)
+
+#Confusion matrix
+cm <- confusionMatrix(
+  factor(test_pred, levels = c(0,1)),
+  factor(test$health_risk, levels = c(0,1)),
+  positive = "1"
+)
+
+#AUC
+roc_obj <- roc(test$health_risk, test_probs)
+auc_val <- auc(roc_obj)
+
+```
+
+```{r}
+#Metrics
+accuracy     <- cm$overall["Accuracy"]
+precision    <- cm$byClass["Precision"]
+recall       <- cm$byClass["Recall"]
+specificity  <- cm$byClass["Specificity"]
+f1           <- cm$byClass["F1"]
+
+accuracy
+precision
+recall
+specificity
+f1
+auc_val
+cm$table
+
+```
+
+```{r}
+#Training Metrics
+train_probs <- predict(xgb_model, train_matrix)
+
+train_pred <- ifelse(train_probs > 0.5, 1, 0)
+
+#Confusion matrix 
+cm_train <- confusionMatrix(
+  factor(train_pred, levels = c(0,1)),
+  factor(train$health_risk, levels = c(0,1)),
+  positive = "1"
+)
+
+#Metrics 
+train_accuracy     <- cm_train$overall["Accuracy"]
+train_precision    <- cm_train$byClass["Precision"]
+train_recall       <- cm_train$byClass["Recall"]
+train_specificity  <- cm_train$byClass["Specificity"]
+train_f1           <- cm_train$byClass["F1"]
+
+#AUC 
+roc_train <- roc(train$health_risk, train_probs)
+train_auc <- auc(roc_train)
+
+train_accuracy
+train_precision
+train_recall
+train_specificity
+train_f1
+train_auc
+cm_train$table
+```
+
+```{r}
+#F1 Threshold Tuning
+
+thrF1_thresholds <- seq(0.05, 0.95, by = 0.01)
+thrF1_results <- data.frame()
+
+for (thr in thrF1_thresholds) {
+  
+  # Classifying using the threshold
+  thrF1_pred <- ifelse(test_probs > thr, 1, 0)
+  thrF1_pred <- factor(thrF1_pred, levels = c(0,1))
+  
+  #Confusion matrix
+  thrF1_cm <- confusionMatrix(
+    data = thrF1_pred,
+    reference = factor(test$health_risk, levels = c(0,1)),
+    positive = "1"
+  )
+  
+  #Storing precision, recall, F1
+  thrF1_results <- rbind(thrF1_results, data.frame(
+    threshold = thr,
+    precision = thrF1_cm$byClass["Precision"],
+    recall = thrF1_cm$byClass["Recall"],
+    F1 = thrF1_cm$byClass["F1"]
+  ))
+}
+
+#Threshold with maximum F1 
+thrF1_best_threshold <- thrF1_results$threshold[which.max(thrF1_results$F1)]
+thrF1_best_threshold
+
+#Applying the optimal threshold to classify 
+thrF1_final_pred <- ifelse(test_probs > thrF1_best_threshold, 1, 0)
+thrF1_final_pred <- factor(thrF1_final_pred, levels = c(0,1))
+
+#Confusion matrix at optimal threshold 
+thrF1_final_cm <- confusionMatrix(
+  thrF1_final_pred,
+  factor(test$health_risk, levels = c(0,1)),
+  positive = "1"
+)
+
+#Metrics
+accuracy     <- thrF1_final_cm$overall["Accuracy"]
+precision    <- thrF1_final_cm$byClass["Precision"]
+recall       <- thrF1_final_cm$byClass["Recall"]
+specificity  <- thrF1_final_cm$byClass["Specificity"]
+f1           <- thrF1_final_cm$byClass["F1"]
+
+#AUC 
+roc_obj <- roc(test$health_risk, test_probs)
+auc_val <- auc(roc_obj)
+
+
+accuracy
+precision
+recall
+specificity
+f1
+auc_val
+thrF1_final_cm$table   
+```
+-----End Model Tuning and Additonal Model code----
