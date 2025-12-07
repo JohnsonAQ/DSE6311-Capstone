@@ -916,6 +916,109 @@ recall
 specificity
 f1
 auc_val
-thrF1_final_cm$table   
+thrF1_final_cm$table
+
+```
+
+--------------TUNE XGBOOST---------------
+
+```{r}
+set.seed(123)
+
+# New Parameters 
+tune_grid <- expand.grid(
+  eta = c(0.05, 0.1),
+  max_depth = c(4, 6),
+  subsample = c(0.7, 0.9),
+  colsample_bytree = c(0.7, 0.9)
+)
+```
+
+```{r}
+# Class imbalance weight
+pos_weight <- sum(train$health_risk == 0) / sum(train$health_risk == 1)
+
+# # Random Search - test only 4 random combinations
+
+set.seed(123)
+sampled_rows <- sample(nrow(tune_grid), 4)
+tune_grid_small <- tune_grid[sampled_rows, ]
+
+results <- data.frame()
+```
+
+Looping Through Randomly Selected Parameter Sets
+
+```{r}
+for (i in 1:nrow(tune_grid_small)) {
+  
+  params <- list(
+    objective = "binary:logistic",
+    eval_metric = "auc",
+    eta = tune_grid_small$eta[i],
+    max_depth = tune_grid_small$max_depth[i],
+    subsample = tune_grid_small$subsample[i],
+    colsample_bytree = tune_grid_small$colsample_bytree[i],
+    scale_pos_weight = pos_weight
+  )
+  
+  model_temp <- xgb.train(
+    params = params,
+    data = train_matrix,
+    nrounds = 80,           e
+    verbose = 0
+  )
+  
+  preds_temp <- predict(model_temp, test_matrix)
+  auc_temp <- auc(roc(test$health_risk, preds_temp))
+  
+  results <- rbind(results, cbind(tune_grid_small[i,], AUC = auc_temp))
+}
+
+results
+
+```
+```{r}
+# Best Model
+best_params <- results[which.max(results$AUC), ]
+best_params
+
+# Training Final Model
+final_params <- list(
+  objective = "binary:logistic",
+  eval_metric = "auc",
+  eta = best_params$eta,
+  max_depth = best_params$max_depth,
+  subsample = best_params$subsample,
+  colsample_bytree = best_params$colsample_bytree,
+  scale_pos_weight = pos_weight
+)
+
+set.seed(123)
+xgb_final <- xgb.train(
+  params = final_params,
+  data = train_matrix,
+  nrounds = 120,   # slightly more for final model
+  verbose = 1
+)
+
+```
+```{r}
+# Evaluating Final Tuned Model
+final_probs <- predict(xgb_final, test_matrix)
+final_pred <- ifelse(final_probs > 0.5, 1, 0)
+
+cm_final <- confusionMatrix(
+  factor(final_pred, levels = c(0,1)),
+  factor(test$health_risk, levels = c(0,1)),
+  positive = "1"
+)
+
+final_auc <- auc(roc(test$health_risk, final_probs))
+
+cm_final
+final_auc
+
+
 ```
 -----End Model Tuning and Additonal Model code----
