@@ -513,6 +513,7 @@ summary(health_data_altered[, c("sex","smoking_history","arthritis","depression"
 
 ## Preprocessing & Model  (PM)
 
+Initial Model - Logistic Regression
 ---Start PM Code---
 
 ---LK---
@@ -637,10 +638,11 @@ Model_coeffs
 
 ---End PM Code---
 
-## Model Evaluation and Tuning (Logistic), Addtional Models (XGboost) 
+## Initial Model Evaluation and Tuning (Logistic), Addtional Model Evaluation and Tuning (XGboost) 
 ----AJ-----
-Logistic Model
-Finding the best Probability threshold based on F1 score
+
+Logistic Model Hyperparameter Tuning
+Finding the Best Probability Threshold Based on F1 score
 
 ```{r}
 # Predicted probabilities for the High class
@@ -696,7 +698,7 @@ thrF1_final_cm
 thrF1_best_threshold
 ```
 
-XGBOOST MODEL
+XGBoost Modeling
 
 ```{r}
 #XGBOOST
@@ -785,7 +787,6 @@ xgb_model <- xgb.train(
 )
 
 ```
-
 ```{r}
 #Predictions on test set
 test_probs <- predict(xgb_model, test_matrix)
@@ -855,6 +856,7 @@ train_auc
 cm_train$table
 ```
 
+F1 Threshold Tuning for XGBoost Model
 ```{r}
 #F1 Threshold Tuning
 
@@ -920,7 +922,7 @@ thrF1_final_cm$table
 
 ```
 
---------------TUNE XGBOOST---------------
+Randomized Hyperparameter Tuning on XGBoost Model
 
 ```{r}
 set.seed(123)
@@ -947,9 +949,8 @@ tune_grid_small <- tune_grid[sampled_rows, ]
 results <- data.frame()
 ```
 
-Looping Through Randomly Selected Parameter Sets
-
 ```{r}
+#Looping Through Randomly Selected Parameter Sets
 for (i in 1:nrow(tune_grid_small)) {
   
   params <- list(
@@ -978,6 +979,7 @@ for (i in 1:nrow(tune_grid_small)) {
 results
 
 ```
+
 ```{r}
 # Best Model
 best_params <- results[which.max(results$AUC), ]
@@ -1003,6 +1005,7 @@ xgb_final <- xgb.train(
 )
 
 ```
+
 ```{r}
 # Evaluating Final Tuned Model
 final_probs <- predict(xgb_final, test_matrix)
