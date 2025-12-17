@@ -1025,3 +1025,39 @@ final_auc
 
 ```
 -----End Model Tuning and Additonal Model code----
+
+Visualizations on New Dataset with 16 Variables
+Varaibles with Significant Relationship to Independent Variable Health Risk 
+
+```{r}
+#Data Exploration Age Category
+
+
+df %>%
+  group_by(age_category) %>%
+  summarise(mean_risk = mean(health_risk, na.rm = TRUE)) %>%
+  ggplot(aes(x = age_category, y = mean_risk, fill = age_category)) +
+  geom_col() +
+  labs(title = "Average Health Risk by Age Category",
+       y = "Mean Health Risk",
+       fill = "General Health") +
+  theme_minimal()
+
+```
+
+```{r}
+#Data Exploration General Health 
+
+df %>%
+  group_by(general_health_recoded) %>%
+  summarise(mean_risk = mean(health_risk, na.rm = TRUE)) %>%
+  ggplot(aes(x = general_health_recoded, y = mean_risk, fill = general_health_recoded)) +
+  geom_col() +
+  labs(title = "Average Health Risk by General Health",
+       y = "Mean Health Risk",
+       fill = "General Health") +
+  theme_minimal()
+
+unique(health_data$general_health)
+```
+
